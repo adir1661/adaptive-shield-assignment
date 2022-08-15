@@ -1,9 +1,7 @@
 from project.consumer import PrintConsumer
 from project.scraper import AnimalsScraper
-from pprint import pprint
 
 CONSUMERS = [PrintConsumer]
-
 
 
 def main():

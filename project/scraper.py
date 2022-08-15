@@ -48,10 +48,10 @@ class AnimalsScraper(BaseSrcaper):
 
     @staticmethod
     def _parse_text(text: str):
-        """ method to fix incorrect data"""
+        """ method to fix incorrect data (synonyms are considered valid and will be included with a slash)"""
 
         # remove the cases where the animal to adjective has a irrelevant description in parenthesis
-        text = re.sub(r'\(.*\)', '', text)
+        text = re.sub(r'(\(|\[).*(\)|\])', '', text)
 
         text = re.sub(r'Also see.*', '', text)
 
@@ -67,23 +67,36 @@ class AnimalsScraper(BaseSrcaper):
         """
         html_content = response.text
         doc = BeautifulSoup(html_content, 'html.parser')
+
+        # get just the second table.
         table = doc.select('table.wikitable')[1]
 
+        # get text separates the lines with ';' to deal with it later.
+        collateral_adjectives = [x.get_text(';') for x in table.select('td:nth-child(6)')]
         animal_names = [x.text for x in table.select('td:nth-child(1)')]
-        collateral_adjectives = [x.text for x in table.select('td:nth-child(6)')]
 
-        rows = [dict(
-            collateral_adjective=self._parse_text(adjective),
-            animal=self._parse_text(animal)
-        ) for animal, adjective in
-            zip(animal_names, collateral_adjectives) if self._term_valid(animal) and self._term_valid(adjective)
-
-        ]
+        rows = []
+        for animal, adjective in zip(animal_names, collateral_adjectives):
+            # rows with corrupted data are invalid.
+            if self._term_valid(animal) and self._term_valid(adjective):
+                if ';' not in adjective:
+                    rows.append(dict(
+                        collateral_adjective=self._parse_text(adjective),
+                        animal=self._parse_text(animal)
+                    ))
+                # in case there is many adjectives to one animal add all the rows accordingly
+                else:
+                    rows.extend([dict(
+                        collateral_adjective=self._parse_text(sub_adjective),
+                        animal=self._parse_text(animal)
+                    ) for sub_adjective in adjective.split(';')])
 
         return rows
 
     @classmethod
     def _term_valid(cls, term) -> bool:
+        """ validate a term to remove rows with irrelevant data."""
+
         term_parsed = cls._parse_text(term)
         if term_parsed == '' or term_parsed == '?':
             return False

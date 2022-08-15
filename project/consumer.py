@@ -24,5 +24,5 @@ class PrintConsumer(BaseConsumer):
         sorted_data = sorted(self.data, key=lambda d: ( d['collateral_adjective'],d['animal'],))
 
         # orginizing the string to be more readable.
-        presentable_data = [f"collateral_adjective: {d['collateral_adjective']} => animal: {d['animal']}" for d in sorted_data]
+        presentable_data = [f"collateral_adjective: --------{d['collateral_adjective']}------------ => animal: ----------{d['animal']}----------" for d in sorted_data]
         pprint(presentable_data)
